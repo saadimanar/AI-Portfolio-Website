@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
   Menu,
+  Home,
   Laugh,
   BriefcaseBusiness,
   Layers,
@@ -39,6 +40,11 @@ const questionConfig = [
 
 const ChatSidebar = ({ isOpen, onToggle }: ChatSidebarProps) => {
   const router = useRouter();
+
+  const goHome = () => {
+    router.push("/");
+    onToggle();
+  };
 
   // Same navigation logic as your first page
   const goToChat = (query: string) => {
@@ -115,6 +121,29 @@ const ChatSidebar = ({ isOpen, onToggle }: ChatSidebarProps) => {
               <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">
                 Navigation
               </div>
+              <motion.button
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0 }}
+                onClick={goHome}
+                className="w-full flex items-center gap-4 p-4 rounded-xl hover:bg-accent transition-all duration-200 cursor-pointer group border border-transparent hover:border-border/50 active:scale-95"
+              >
+                <div
+                  className="p-2 rounded-lg transition-transform group-hover:scale-110"
+                  style={{ backgroundColor: "#32969615" }}
+                >
+                  <Home
+                    className="h-5 w-5"
+                    style={{ color: "#329696" }}
+                    strokeWidth={2}
+                  />
+                </div>
+                <div className="text-left">
+                  <div className="font-medium text-foreground group-hover:text-foreground">
+                    Home
+                  </div>
+                </div>
+              </motion.button>
               {questionConfig.map((item, index) => {
                 const Icon = item.icon;
                 return (
@@ -122,7 +151,7 @@ const ChatSidebar = ({ isOpen, onToggle }: ChatSidebarProps) => {
                     key={item.key}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.1 }}
+                    transition={{ delay: (index + 1) * 0.1 }}
                     onClick={() => goToChat(questions[item.key])}
                     className="w-full flex items-center gap-4 p-4 rounded-xl hover:bg-accent transition-all duration-200 cursor-pointer group border border-transparent hover:border-border/50 active:scale-95"
                   >
