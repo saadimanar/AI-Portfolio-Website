@@ -9,7 +9,6 @@ export function Profile() {
   // Personal information
   const profile = {
     name: "Manar Saadi",
-    age: "26 years old",
     location: "Haifa, Israel",
     // Add a newline character after the emoji
     description:
@@ -74,8 +73,6 @@ export function Profile() {
               {profile.name}
             </h1>
             <div className="mt-1 flex flex-col gap-1 md:flex-row md:items-center md:gap-4">
-              <p className="text-muted-foreground">{profile.age}</p>
-              <div className="bg-border hidden h-1.5 w-1.5 rounded-full md:block" />
               <p className="text-muted-foreground">{profile.location}</p>
             </div>
           </motion.div>
