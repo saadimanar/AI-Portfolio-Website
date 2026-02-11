@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { cn } from "@/lib/utils";
+import { ChatSessionClear } from "@/components/chat/chat-session-clear";
 import { ThemeProvider } from "@/components/theme-provider";
 import "@/lib/localStorage-polyfill";
 import "./globals.css";
@@ -57,6 +58,7 @@ export default function RootLayout({
           defaultTheme="light"
           enableSystem={false}
         >
+          <ChatSessionClear />
           <main className="flex min-h-screen flex-col">{children}</main>
         </ThemeProvider>
       </body>

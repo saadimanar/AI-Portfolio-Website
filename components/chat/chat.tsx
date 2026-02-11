@@ -50,6 +50,7 @@ const MOTION_CONFIG = {
 } as const;
 
 const CHAT_STORAGE_KEY = "portfolio-chat-messages";
+const CLEAR_CHAT_ON_NEXT_VISIT_KEY = "clear_chat_on_next_visit";
 
 const Chat = () => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -205,11 +206,21 @@ const Chat = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loadingSubmit]);
 
-  // Restore chat history from localStorage on mount
+  // On mount: if user came from another page (e.g. home), clear history for new session. Otherwise restore from localStorage.
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      if (sessionStorage.getItem(CLEAR_CHAT_ON_NEXT_VISIT_KEY)) {
+        sessionStorage.removeItem(CLEAR_CHAT_ON_NEXT_VISIT_KEY);
+        localStorage.removeItem(CHAT_STORAGE_KEY);
+        return;
+      }
+    } catch {
+      // ignore
+    }
     if (hasRestoredRef.current || messages.length > 0) return;
     try {
-      const raw = typeof window !== "undefined" && localStorage.getItem(CHAT_STORAGE_KEY);
+      const raw = localStorage.getItem(CHAT_STORAGE_KEY);
       if (!raw) return;
       const saved = JSON.parse(raw) as typeof messages;
       if (Array.isArray(saved) && saved.length > 0) {
@@ -242,12 +253,6 @@ const Chat = () => {
         .filter((r) => r.content.trim().length > 0);
       if (records.length === 0) return;
       const body = JSON.stringify({ messages: records });
-      // Clear local history so the next conversation starts fresh
-      try {
-        localStorage.removeItem(CHAT_STORAGE_KEY);
-      } catch {
-        // ignore
-      }
       // Use keepalive so the request can complete when the page is closing
       fetch(CHAT_SAVE_API, {
         method: "POST",
