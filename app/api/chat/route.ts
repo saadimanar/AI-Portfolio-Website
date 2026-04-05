@@ -1,6 +1,6 @@
 import { openai } from "@ai-sdk/openai";
 import { streamText } from "ai";
-import { getSystemPrompt } from "@/actions/prompt.actions";
+import { getSystemPrompt } from "@/lib/prompts/get-system-prompt";
 import { searchVectorStore } from "@/lib/vector-store";
 import { getProfile } from "./tools/getProfile";
 import { getContact } from "./tools/getContact";

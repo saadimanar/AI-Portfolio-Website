@@ -15,20 +15,6 @@ import {
   ChatBubbleMessage,
 } from "@/components/ui/chat/chat-bubble";
 
-/** Extract plain text content from an AI SDK message for DB storage */
-function getMessageContent(msg: Message): string {
-  if (typeof msg.content === "string") return msg.content;
-  if (msg.parts?.length) {
-    return msg.parts
-      .filter((p): p is { type: "text"; text: string } => p.type === "text" && "text" in p)
-      .map((p) => p.text)
-      .join("\n");
-  }
-  return "";
-}
-
-const CHAT_SAVE_API = "/api/chat/save";
-
 // const MOTION_CONFIG = {
 //   initial: { opacity: 0, y: 20 },
 //   animate: { opacity: 1, y: 0 },
@@ -56,7 +42,6 @@ const Chat = () => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const hasRestoredRef = useRef(false);
-  const messagesRef = useRef<Message[]>([]);
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get("query");
   const [autoSubmitted, setAutoSubmitted] = useState(false);
@@ -109,8 +94,6 @@ const Chat = () => {
       console.log("Tool call:", toolName);
     },
   });
-
-  messagesRef.current = messages;
 
   const { currentAIMessage, latestUserMessage, hasActiveTool } = useMemo(() => {
     const latestAIMessageIndex = messages.findLastIndex(
@@ -241,35 +224,6 @@ const Chat = () => {
       console.error("Failed to save chat history", e);
     }
   }, [messages, isLoading]);
-
-  // Save full conversation to DB when session ends (unmount or page close)
-  useEffect(() => {
-    const saveSessionToDb = (msgs: Message[]) => {
-      const records = msgs
-        .map((m) => ({
-          role: m.role as "user" | "assistant" | "system",
-          content: getMessageContent(m),
-        }))
-        .filter((r) => r.content.trim().length > 0);
-      if (records.length === 0) return;
-      const body = JSON.stringify({ messages: records });
-      // Use keepalive so the request can complete when the page is closing
-      fetch(CHAT_SAVE_API, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body,
-        keepalive: true,
-      }).catch((err) => console.error("Failed to save chat session to DB", err));
-    };
-
-    const onPageHide = () => saveSessionToDb(messagesRef.current);
-
-    window.addEventListener("pagehide", onPageHide);
-    return () => {
-      window.removeEventListener("pagehide", onPageHide);
-      saveSessionToDb(messagesRef.current);
-    };
-  }, []);
 
   //@ts-ignore
   const onSubmit = (e) => {
