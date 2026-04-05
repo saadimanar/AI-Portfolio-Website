@@ -3,7 +3,7 @@ import { useChat } from "@ai-sdk/react";
 import type { Message } from "ai/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 // import { toast } from 'sonner';
 
 // Component imports
@@ -37,6 +37,12 @@ const MOTION_CONFIG = {
 
 const CHAT_STORAGE_KEY = "portfolio-chat-messages";
 const CLEAR_CHAT_ON_NEXT_VISIT_KEY = "clear_chat_on_next_visit";
+/**
+ * Last `?query=` we successfully appended in this tab. Used to tell:
+ * - refresh with the same URL + existing history → do not append again
+ * - new `?query=` (e.g. sidebar) → append even when localStorage has history
+ */
+const LAST_URL_QUERY_KEY = "portfolio_last_chat_url_query";
 
 const Chat = () => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -44,7 +50,6 @@ const Chat = () => {
   const hasRestoredRef = useRef(false);
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get("query");
-  const [autoSubmitted, setAutoSubmitted] = useState(false);
   const [loadingSubmit, setLoadingSubmit] = useState(false);
   const [isTalking, setIsTalking] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -137,15 +142,22 @@ const Chat = () => {
       )
   );
 
-  //@ts-ignore
-  const submitQuery = (query) => {
-    if (!query.trim() || isToolInProgress) return;
-    setLoadingSubmit(true);
-    append({
-      role: "user",
-      content: query,
-    });
-  };
+  const submitQuery = useCallback(
+    (query: string) => {
+      if (!query.trim() || isToolInProgress) return;
+      setLoadingSubmit(true);
+      append({
+        role: "user",
+        content: query,
+      });
+    },
+    [append, isToolInProgress]
+  );
+
+  const submitQueryRef = useRef(submitQuery);
+  submitQueryRef.current = submitQuery;
+  const setInputRef = useRef(setInput);
+  setInputRef.current = setInput;
 
   useEffect(() => {
     if (videoRef.current) {
@@ -154,23 +166,44 @@ const Chat = () => {
       videoRef.current.playsInline = true;
       videoRef.current.pause();
     }
+  }, []);
 
-    if (initialQuery && !autoSubmitted) {
-      setAutoSubmitted(true);
-      setInput("");
-      // Don't re-submit the query if we have saved history (e.g. user refreshed)
+  /**
+   * Apply `?query=` from the URL: restore runs in a separate effect; we defer with
+   * `setTimeout(0)` so `setMessages(saved)` from localStorage does not race with `append`.
+   */
+  useEffect(() => {
+    const q = initialQuery?.trim();
+    if (!q) return;
+
+    try {
+      const lastApplied = sessionStorage.getItem(LAST_URL_QUERY_KEY);
+      const raw = localStorage.getItem(CHAT_STORAGE_KEY);
+      let hasHistory = false;
+      if (raw) {
+        const saved = JSON.parse(raw);
+        hasHistory = Array.isArray(saved) && saved.length > 0;
+      }
+      if (hasHistory && lastApplied === q) return;
+    } catch {
+      // fall through to schedule submit
+    }
+
+    const id = window.setTimeout(() => {
       try {
-        const raw = typeof window !== "undefined" && localStorage.getItem(CHAT_STORAGE_KEY);
-        if (raw) {
-          const saved = JSON.parse(raw);
-          if (Array.isArray(saved) && saved.length > 0) return;
-        }
+        sessionStorage.setItem(LAST_URL_QUERY_KEY, q);
       } catch {
         // ignore
       }
-      submitQuery(initialQuery);
-    }
-  }, [initialQuery, autoSubmitted]);
+      setInputRef.current("");
+      submitQueryRef.current(q);
+    }, 0);
+
+    return () => clearTimeout(id);
+    // Intentionally only `initialQuery`: `submitQuery` changes every time `isToolInProgress`
+    // flips during streaming, which would re-run this effect in a loop and re-append forever.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refs carry latest submitQuery/setInput
+  }, [initialQuery]);
 
   useEffect(() => {
     if (videoRef.current) {

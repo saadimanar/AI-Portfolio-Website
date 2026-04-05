@@ -20,11 +20,11 @@ import { Variants } from "framer-motion";
 /* ---------- quick-question data ---------- */
 const questions = {
   Me: "Who are you? I want to know more about you.",
-  Projects: "What are your projects? What are you working on right now?",
+  Projects: "What are your projects?",
   Skills: "What are your skills? Give me a list of your soft and hard skills.",
   Resume: "Can I see your Resume?",
   Contact:
-    'How can I reach you? What kind of project would make you say "yes" immediately?',
+    'How can I reach you?',
 } as const;
 
 const questionConfig = [
